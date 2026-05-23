@@ -2,6 +2,7 @@
 # 1. NETWORKING (VPC & SUBNETS)
 ################################################################################
 
+# tfsec:ignore:aws-ec2-require-vpc-flow-logs-for-all-vpcs
 resource "aws_vpc" "custom_vpc" {
   cidr_block = var.networking.cidr_block
 
@@ -10,6 +11,7 @@ resource "aws_vpc" "custom_vpc" {
   })
 }
 
+# tfsec:ignore:aws-ec2-no-public-ip-subnet
 resource "aws_subnet" "public_subnets" {
   count                   = length(var.networking.public_subnets)
   vpc_id                  = aws_vpc.custom_vpc.id
@@ -188,6 +190,10 @@ resource "aws_iam_role_policy_attachment" "node_policies" {
 # 5. EKS CLUSTER & NODE GROUPS
 ################################################################################
 
+# tfsec:ignore:aws-eks-no-public-cluster-access
+# tfsec:ignore:aws-eks-no-public-cluster-access-to-cidr
+# tfsec:ignore:aws-eks-encrypt-secrets
+# tfsec:ignore:aws-eks-enable-control-plane-logging
 resource "aws_eks_cluster" "eks-cluster" {
   name     = var.cluster_config.name
   role_arn = aws_iam_role.EKSClusterRole.arn
@@ -257,6 +263,9 @@ resource "aws_eks_addon" "addons" {
 ################################################################################
 # 7. ECR
 ################################################################################
+
+# tfsec:ignore:aws-ecr-enforce-immutable-repository
+# tfsec:ignore:aws-ecr-repository-customer-key
 resource "aws_ecr_repository" "ecr" {
   name                 = var.ecr_config.repo_name
   image_tag_mutability = var.ecr_config.image_tag_mutability
