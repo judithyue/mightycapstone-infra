@@ -258,9 +258,9 @@ resource "aws_eks_addon" "addons" {
 # 7. ECR
 ################################################################################
 resource "aws_ecr_repository" "ecr" {
-  name = var.ecr_config.repo_name
+  name                 = var.ecr_config.repo_name
   image_tag_mutability = var.ecr_config.image_tag_mutability
-  force_delete = var.ecr_config.force_delete
+  force_delete         = var.ecr_config.force_delete
 
   image_scanning_configuration {
     scan_on_push = var.scan_on_push
