@@ -65,3 +65,13 @@ resource "aws_dynamodb_table" "terraform_locks" {
     Name = var.lock_table_name
   })
 }
+
+# uncomment the block after 1st run of the bootstrap to avoid recreating the bucket and losing its own state file
+terraform {
+  backend "s3" {
+    bucket         = "bq-mightycapstone-terraform-state"
+    key            = "bootstrap/terraform.tfstate" # A separate folder key!
+    region         = "ap-southeast-1"
+    dynamodb_table = "bq-mightycapstone-terraform-locks"
+  }
+}
