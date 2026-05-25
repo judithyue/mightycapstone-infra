@@ -66,7 +66,7 @@ resource "aws_dynamodb_table" "terraform_locks" {
   })
 }
 
-# uncomment the block after 1st run of the bootstrap to avoid recreating the bucket and losing its own state file
+# uncomment the block after 1st local run of the bootstrap to avoid recreating the bucket and losing its own state file
 terraform {
   backend "s3" {
     bucket         = "bq-mightycapstone-terraform-state"

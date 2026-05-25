@@ -100,7 +100,7 @@ jobs:
 
       - name: Validate environment
         run: |
-          if [ "${TF_ENV}" != "dev" ] && [ "${TF_ENV}" != "prod" ]; then
+          if [ "${TF_ENV}" != "dev" ] && [ "${TF_ENV}" != "main" ]; then
             echo "Unsupported environment: ${TF_ENV}"
             exit 1
           fi

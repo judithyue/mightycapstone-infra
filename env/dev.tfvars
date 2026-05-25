@@ -3,7 +3,7 @@ naming_prefix = "bq-dev"
 
 cluster_config = {
   name    = "bq-eks-cluster-dev"
-  version = "1.35"
+  version = "1.32"
 }
 
 ecr_config = {
