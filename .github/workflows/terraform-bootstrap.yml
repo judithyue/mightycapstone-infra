@@ -12,6 +12,7 @@ on:
           - apply
   push:
     branches:
+      - dev
       - main
     paths:
       - 'bootstrap/**'
@@ -74,7 +75,6 @@ jobs:
     needs: bootstrap-plan
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
-    environment: bootstrap
     steps:
       - uses: actions/checkout@v4
 

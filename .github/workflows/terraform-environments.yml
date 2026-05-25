@@ -10,8 +10,10 @@ on:
   push:
     branches:
       - dev
-      - prod
-      - main
+      - main  #<--- 'main' is now officially your production branch
+    paths-ignore:
+      - 'bootstrap/**'
+      - '.github/workflows/terraform-bootstrap.yml'
   workflow_dispatch:
     inputs:
       environment:
@@ -20,7 +22,7 @@ on:
         type: choice
         options:
           - dev
-          - prod
+          - main # Keeps the option to manually run against your prod variable files
       action:
         description: "Run plan or apply"
         required: true
