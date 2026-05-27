@@ -8,6 +8,9 @@ on:
     branches:
       - dev
       - main  # 'main' is the production branch
+    paths-ignore:
+      - '.github/workflows/**'
+      - 'README.md'  # Ignore markdown files for push events
   workflow_dispatch:
     inputs:
       environment:
@@ -150,6 +153,7 @@ jobs:
     needs: terraform-plan
     runs-on: ubuntu-latest
     if: |
+      (needs.terraform-plan.result == 'success') &&
       github.event_name == 'push' || 
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'))
     environment: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.environment) || github.ref_name }}
