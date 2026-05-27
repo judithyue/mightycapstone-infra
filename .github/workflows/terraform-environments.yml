@@ -1,8 +1,5 @@
 name: Terraform Environments
 
-# Prerequisite: run the bootstrap workflow first to provision the Terraform backend resources.
-# This workflow assumes the S3 state bucket and DynamoDB lock table already exist.
-# bootstrap workflow file: .github/workflows/terraform-bootstrap.yml
 on:
   pull_request:
     branches:
@@ -10,7 +7,7 @@ on:
   push:
     branches:
       - dev
-      - main  #<--- 'main' is now officially your production branch
+      - main  # 'main' is the production branch
   workflow_dispatch:
     inputs:
       environment:
@@ -19,24 +16,21 @@ on:
         type: choice
         options:
           - dev
-          - main # Keeps the option to manually run against your prod variable files
+          - main 
       action:
-        description: "Run plan or apply"
+        description: "Run plan, apply or destroy"
         required: true
         type: choice
         options:
           - plan
           - apply
-
-env:
-  TF_STATE_BUCKET: bq-mightycapstone-terraform-state
-  TF_LOCK_TABLE: bq-mightycapstone-terraform-locks
-  AWS_REGION: ap-southeast-1
+          - destroy
 
 jobs:
   security-scans:
     name: Security Scans
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.action != 'destroy'
     steps:
       - uses: actions/checkout@v4
 
@@ -77,12 +71,15 @@ jobs:
           skip_check: CKV_AWS_18,CKV_AWS_28,CKV_AWS_37,CKV_AWS_38,CKV_AWS_39,CKV_AWS_58,CKV_AWS_119,CKV_AWS_130,CKV_AWS_136,CKV_AWS_144,CKV_AWS_145,CKV_AWS_157,CKV2_AWS_11,CKV2_AWS_12,CKV2_AWS_19,CKV2_AWS_61,CKV2_AWS_62
 
   terraform-plan:
-    name: Terraform Plan
+    name: Terraform Plan / Destroy Plan
     needs: security-scans
+    if: always() && (needs.security-scans.result == 'success' || needs.security-scans.result == 'skipped')
     runs-on: ubuntu-latest
-    if: (github.event_name == 'pull_request' && github.base_ref == 'main') || (github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/prod')) || github.event_name == 'workflow_dispatch'
     env:
+      # Evaluates base environment tracking string
       TF_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || github.ref_name }}
+      # If TF_ENV is main, use 'prod' file suffixes, otherwise use 'dev'
+      TF_FILE_SUFFIX: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.environment || github.ref_name) == 'main' && 'prod' || 'dev' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -91,17 +88,17 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: '1.5.7'
 
-      - name: Validate environment
+      - name: Validate Environment Scope
         run: |
           if [ "${TF_ENV}" != "dev" ] && [ "${TF_ENV}" != "main" ]; then
-            echo "Unsupported environment: ${TF_ENV}"
+            echo "Unsupported branch/environment context: ${TF_ENV}"
             exit 1
           fi
 
@@ -111,32 +108,37 @@ jobs:
       - name: Terraform init
         run: |
           terraform init \
-            -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
-            -backend-config="key=state/${TF_ENV}/terraform.tfstate" \
-            -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="dynamodb_table=${{ env.TF_LOCK_TABLE }}" \
+            -backend-config="env/backend-${{ env.TF_FILE_SUFFIX }}.tfvars" \
             -reconfigure
 
       - name: Terraform validate
         run: terraform validate
 
-      - name: Terraform plan
-        run: terraform plan -var-file="env/${TF_ENV}.tfvars" -out=tfplan
+      - name: Terraform plan (Deploy or Destroy)
+        run: |
+          if [ "${{ github.event.inputs.action }}" = "destroy" ]; then
+            terraform plan -destroy -var-file="env/${{ env.TF_FILE_SUFFIX }}.tfvars" -out=tfplan
+          else
+            terraform plan -var-file="env/${{ env.TF_FILE_SUFFIX }}.tfvars" -out=tfplan
+          fi
 
       - name: Save plan artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tfplan-${{ env.TF_ENV }}
+          name: tfplan-${{ env.TF_FILE_SUFFIX }}
           path: tfplan
 
   terraform-apply:
-    name: Terraform Apply
+    name: Terraform Apply / Destroy Execution
     needs: terraform-plan
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+    if: |
+      github.event_name == 'push' || 
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.action == 'apply' || github.event.inputs.action == 'destroy'))
     environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || github.ref_name }}
     env:
       TF_ENV: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || github.ref_name }}
+      TF_FILE_SUFFIX: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.environment || github.ref_name) == 'main' && 'prod' || 'dev' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -145,7 +147,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -155,16 +157,13 @@ jobs:
       - name: Download plan artifact
         uses: actions/download-artifact@v4
         with:
-          name: tfplan-${{ env.TF_ENV }}
+          name: tfplan-${{ env.TF_FILE_SUFFIX }}
 
       - name: Terraform init
         run: |
           terraform init \
-            -backend-config="bucket=${{ env.TF_STATE_BUCKET }}" \
-            -backend-config="key=state/${TF_ENV}/terraform.tfstate" \
-            -backend-config="region=${{ env.AWS_REGION }}" \
-            -backend-config="dynamodb_table=${{ env.TF_LOCK_TABLE }}" \
+            -backend-config="env/backend-${{ env.TF_FILE_SUFFIX }}.tfvars" \
             -reconfigure
 
-      - name: Terraform apply
+      - name: Terraform apply (Deploy or Destroy)
         run: terraform apply -auto-approve tfplan
