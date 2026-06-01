@@ -271,4 +271,4 @@ resource "aws_ecr_repository" "ecr" {
   })
 }
 
-# mock semver test 01
+# test feature/test-ef-chg-code-01, then pull request to merge with dev branch then pull request to merge with main branch
