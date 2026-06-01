@@ -215,7 +215,7 @@ resource "aws_eks_node_group" "node-ec2" {
 
   tags = merge(var.common_tags, {
     Name         = "${var.naming_prefix}-${each.value.name}-nodegroup"
-    PipelineTest = "kickstart-run-01" # ADD THIS LINE TO FORCE A REAL DEPLOYMENT TEST
+    PipelineTest = "kickstart-run-02" # ADD THIS LINE TO FORCE A REAL DEPLOYMENT TEST
   })
 
   scaling_config {
