@@ -214,8 +214,8 @@ resource "aws_eks_node_group" "node-ec2" {
   subnet_ids      = aws_subnet.private_subnets[*].id
 
   tags = merge(var.common_tags, {
-    Name = "${var.naming_prefix}-${each.value.name}-nodegroup"
-    PipelineTest = "kickstart-run-01"  # ADD THIS LINE TO FORCE A REAL DEPLOYMENT TEST
+    Name         = "${var.naming_prefix}-${each.value.name}-nodegroup"
+    PipelineTest = "kickstart-run-01" # ADD THIS LINE TO FORCE A REAL DEPLOYMENT TEST
   })
 
   scaling_config {
