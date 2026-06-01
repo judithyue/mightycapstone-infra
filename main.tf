@@ -272,3 +272,4 @@ resource "aws_ecr_repository" "ecr" {
 }
 
 # mock semver test 01
+# mock test feature/test-eks-upgrade-02
