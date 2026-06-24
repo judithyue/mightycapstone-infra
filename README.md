@@ -7,7 +7,7 @@ This repository contains the Infrastructure as Code (IaC) written in Terraform t
 
 Below is the conceptual architecture of the resources deployed by this Terraform configuration:
 
-![AWS EKS Architectures](capstone-infra-infographic.png)
+![AWS EKS Architectures](capstone-infra-info.png)
 
 ---
 
