@@ -214,7 +214,8 @@ resource "aws_eks_node_group" "node-ec2" {
   subnet_ids      = aws_subnet.private_subnets[*].id
 
   tags = merge(var.common_tags, {
-    Name = "${var.naming_prefix}-${each.value.name}-nodegroup"
+    Name         = "${var.naming_prefix}-${each.value.name}-nodegroup"
+    PipelineTest = "kickstart-run-02" # ADD THIS LINE TO FORCE A REAL DEPLOYMENT TEST
   })
 
   scaling_config {
@@ -270,5 +271,3 @@ resource "aws_ecr_repository" "ecr" {
     Name = "${var.naming_prefix}-ecr-repo"
   })
 }
-
-# test feature/test-ef-chg-code-01, then pull request to merge with dev branch then pull request to merge with main branch
