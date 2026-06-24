@@ -43,6 +43,6 @@ Below is the conceptual architecture of the resources deployed by this Terraform
 
 ---
 
-### Deployment Steps
+### Deployment Step
 refer to:
 https://mightycapstone.atlassian.net/wiki/spaces/ICDD/pages/7733251/mightycapstones-infra
