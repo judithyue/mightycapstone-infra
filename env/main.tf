@@ -185,6 +185,7 @@ resource "aws_iam_role_policy_attachment" "node_policies" {
   role       = aws_iam_role.NodeGroupRole.name
 }
 
+
 ################################################################################
 # 5. EKS CLUSTER & NODE GROUPS
 ################################################################################
@@ -192,6 +193,10 @@ resource "aws_eks_cluster" "eks-cluster" {
   name     = var.cluster_config.name
   role_arn = aws_iam_role.EKSClusterRole.arn
   version  = var.cluster_config.version
+
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP" #### added by madhu ##
+  }
 
   tags = merge(var.common_tags, {
     Name = var.cluster_config.name
@@ -231,6 +236,27 @@ resource "aws_eks_node_group" "node-ec2" {
 
   depends_on = [aws_iam_role_policy_attachment.node_policies]
 }
+
+
+############# section added by madhu for eks access entry and policy association ############
+resource "aws_eks_access_entry" "oliviasiow" {
+  cluster_name  = aws_eks_cluster.eks-cluster.name
+  principal_arn = "arn:aws:iam::255945442255:user/oliviasiow"
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "oliviasiow_admin" {
+  cluster_name  = aws_eks_cluster.eks-cluster.name
+  principal_arn = aws_eks_access_entry.oliviasiow.principal_arn
+
+  policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+}
+
+############# section added by madhu for eks access entry and policy association ############
 
 ################################################################################
 # 6. ADDONS & OIDC
