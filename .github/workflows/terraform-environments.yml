@@ -7,8 +7,10 @@ on:
   push:
     branches:
       - dev   # Code pushes/merges to dev still run apply automatically
-    tags:
-      - 'v*.*.*'  # SEMVER TRIGGER: Matches any semantic version tag (e.g., v1.0.0, v2.1.4)
+  workflow_run:
+    workflows: ["Auto-Increment Release Tag"] #Must match the exact name of your tagger file
+    types:
+      - completed # Only wakes up once the tag is officially pushed to GitHub
   workflow_dispatch:
     inputs:
       environment:
